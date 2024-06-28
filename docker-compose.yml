@@ -1,0 +1,81 @@
+services:
+    kafka:
+        image: confluentinc/cp-kafka:7.6.0
+        hostname: kafka
+        container_name: kafka
+        ports:
+            - 9092:9092
+        environment:
+            KAFKA_PROCESS_ROLES: "broker,controller"
+            KAFKA_NODE_ID: 1
+            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+            KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+            KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+            KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+            KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+            KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+            KAFKA_LISTENERS: PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://0.0.0.0:9092
+            CLUSTER_ID: "${CLUSTER_ID:-MkU3OEVBNTcwNTJENDM2Qh}"
+
+    schema-registry:
+        image: confluentinc/cp-schema-registry:7.6.0
+        hostname: schema-registry
+        container_name: schema-registry
+        depends_on:
+            - kafka
+        ports:
+            - 8081:8081
+        environment:
+            SCHEMA_REGISTRY_HOST_NAME: schema-registry
+            SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:29092
+
+    postgres:
+        image: postgres:16
+        container_name: postgres
+        env_file:
+            - .env
+        ports:
+            - 5432:5432
+        volumes:
+            - pgdata:/var/lib/postgresql/data
+
+    producer:
+        container_name: producer
+        build: .
+        command: python producer.py
+        ports:
+          - 8000:8000
+        depends_on:
+            - kafka
+            - schema-registry
+            - postgres
+        env_file:
+            - .env
+
+    consumer:
+        build: .
+        command: python consumer.py
+        # create multiple consumers belonging to the same consumer group
+        # deploy:
+        #     replicas: 3
+        depends_on:
+            - kafka
+            - schema-registry
+            - postgres
+        env_file:
+            - .env
+
+    correction_mechanism:
+        container_name: correction_mechanism
+        build: .
+        command: python correction_mechanism.py
+        depends_on:
+            - kafka
+            - schema-registry
+            - postgres
+        env_file:
+            - .env
+
+volumes:
+    pgdata:

@@ -1,0 +1,13 @@
+pydantic
+pydantic-settings
+fastapi
+sqlalchemy
+psycopg2-binary
+confluent-kafka==2.4.0
+avro
+fastavro
+requests
+loguru
+black
+isort
+jsonschema
