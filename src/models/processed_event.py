@@ -1,7 +1,6 @@
 from sqlalchemy import JSON, Column, DateTime, Integer, String
-from sqlalchemy.ext.declarative import declarative_base
 
-Base = declarative_base()
+from src.db.base_class import Base
 
 
 class ProcessedEvent(Base):
