@@ -11,44 +11,45 @@ In this project we do the following:
 
 > PS - You can then create visualizations on top of it to create a real-time analytics dashboard using Apache Superset or any other BI tool.
 
-
 ```mermaid
 flowchart TD
-    Client([Client]) -->|1. Send Events| Producer[Producer]
-    Producer -->|2. Serialize| SchemaRegistry[Schema Registry]
-    SchemaRegistry -->|3. Provide Schema| Producer
-    Producer -->|4. Produce Events| Kafka[Kafka]
+    subgraph KafkaETLSystem[Kafka ETL System]
+        Client([Client]) -->|1. Send Events| Producer[Producer]
+        Producer -->|2. Serialize| SchemaRegistry[Schema Registry]
+        SchemaRegistry -->|3. Provide Schema| Producer
+        Producer -->|4. Produce Events| Kafka[Kafka]
 
-    subgraph Kafka[Kafka Cluster]
-        Topic1[event_order]
-        Topic2[event_purchase]
-        Topic3[event_delivery]
-    end
-
-    Kafka --> Consumers
-
-    subgraph Consumers[Consumers]
-        direction TB
-        SimpleProcessors[Simple Processors]
-        AggregatorProcessor[Aggregator Processor]
-        
-        subgraph SimpleProcessors
-            C1[Order Processor]
-            C2[Purchase Processor]
-            C3[Delivery Processor]
+        subgraph Kafka[Kafka Cluster]
+            Topic1[event_order]
+            Topic2[event_purchase]
+            Topic3[event_delivery]
         end
+
+        Kafka --> Consumers
+
+        subgraph Consumers[Consumers]
+            direction TB
+            SimpleProcessors[Simple Processors]
+            AggregatorProcessor[Aggregator Processor]
+            
+            subgraph SimpleProcessors
+                C1[Order Processor]
+                C2[Purchase Processor]
+                C3[Delivery Processor]
+            end
+        end
+
+        Topic1 -->|5a. Consume| C1
+        Topic2 -->|5b. Consume| C2
+        Topic3 -->|5c. Consume| C3
+        
+        Topic1 & Topic2 & Topic3 -->|5d. Consume| AggregatorProcessor
+
+        C1 & C2 & C3 -->|6. Store| OLAPDB[(OLAP Database)]
+        AggregatorProcessor -->|6. Generate & Store| Reports[/Report Images/]
+
+        SchemaRegistry -->|5. Provide Schema| Consumers
     end
-
-    Topic1 -->|5a. Consume| C1
-    Topic2 -->|5b. Consume| C2
-    Topic3 -->|5c. Consume| C3
-    
-    Topic1 & Topic2 & Topic3 -->|5d. Consume| AggregatorProcessor
-
-    C1 & C2 & C3 -->|6. Store| OLAPDB[(OLAP Database)]
-    AggregatorProcessor -->|6. Generate & Store| Reports[/Report Images/]
-
-    SchemaRegistry -->|5. Provide Schema| Consumers
 
     classDef default color:#000
     classDef client fill:#E5F5E0,stroke:#000,stroke-width:2px;
@@ -58,6 +59,7 @@ flowchart TD
     classDef database fill:#FFB3BA,stroke:#000,stroke-width:2px;
     classDef registry fill:#F0E68C,stroke:#000,stroke-width:2px;
     classDef reports fill:#BAFFC9,stroke:#000,stroke-width:2px;
+    classDef system fill:#FFFFFF,stroke:#000,stroke-width:4px;
 
     class Client client;
     class Producer producer;
@@ -66,6 +68,7 @@ flowchart TD
     class OLAPDB database;
     class SchemaRegistry registry;
     class Reports reports;
+    class KafkaETLSystem system;
 
     linkStyle 4,5,6,7,11,12,13 stroke:#4169E1,stroke-width:3px;
     linkStyle 8,9,10,14 stroke:#2E8B57,stroke-width:3px;
